@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pengembaraan Rukun Haji</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#1d2b25;font-family:"Segoe UI",Tahoma,Arial,sans-serif;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh}
+  #wrap{position:relative;width:100%;max-width:960px;aspect-ratio:16/9;background:#000;overflow:hidden;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);user-select:none;touch-action:none}
+  canvas{width:100%;height:100%;display:block}
+  #hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:linear-gradient(#0008,#0000);font-weight:700;font-size:clamp(12px,2.2vw,20px);pointer-events:none}
+  #bar{position:absolute;top:calc(clamp(12px,2.2vw,20px) + 22px);left:14px;right:14px;height:6px;background:#fff3;border-radius:4px;overflow:hidden;pointer-events:none}
+  #barIn{height:100%;width:0;background:#ffd54a;transition:width .3s}
+  .overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,25,20,.82);padding:12px;z-index:5;overflow:auto}
+  .overlay.show{display:flex}
+  .card{background:#fffdf5;color:#243b33;border-radius:16px;padding:clamp(14px,3vw,28px);max-width:640px;width:100%;box-shadow:0 8px 30px #0008;border:4px solid #c9a227}
+  .card h1{margin:0 0 6px;font-size:clamp(20px,4vw,32px);color:#0b6b4a;text-align:center}
+  .card h2{margin:0 0 10px;font-size:clamp(16px,2.8vw,22px);color:#0b6b4a}
+  .card p,.card li{font-size:clamp(13px,2.2vw,16px);line-height:1.5}
+  .btn{background:#0b8a5f;color:#fff;border:0;border-radius:10px;padding:10px 20px;font-size:clamp(14px,2.4vw,18px);font-weight:700;cursor:pointer;box-shadow:0 3px 0 #06573c}
+  .btn:active{transform:translateY(2px);box-shadow:0 1px 0 #06573c}
+  .btn.gold{background:#d9a60b;box-shadow:0 3px 0 #96730a}
+  .center{text-align:center}
+  details{background:#eef7f1;border-radius:10px;padding:8px 12px;margin:10px 0}
+  summary{cursor:pointer;font-weight:700;color:#0b6b4a}
+  #qnum{font-size:13px;color:#a47e00;font-weight:700;margin-bottom:4px}
+  #qtext{font-size:clamp(15px,2.8vw,21px);font-weight:700;margin:4px 0 12px}
+  .opt{display:block;width:100%;text-align:left;margin:7px 0;padding:10px 14px;border-radius:10px;border:2px solid #b9cfc4;background:#fff;color:#243b33;font-size:clamp(13px,2.3vw,17px);cursor:pointer;font-family:inherit}
+  .opt:hover:not(.lock){background:#eef7f1;border-color:#0b8a5f}
+  .opt.ok{background:#c9f0d8;border-color:#16a34a;font-weight:700}
+  .opt.bad{background:#fcd5d5;border-color:#dc2626}
+  .opt.lock{cursor:default}
+  #fb{display:none;margin-top:10px;padding:10px 12px;border-radius:10px;font-size:clamp(12px,2.2vw,15px);line-height:1.45}
+  #fb.ok{background:#e3f8ea;border-left:5px solid #16a34a}
+  #fb.bad{background:#fdeaea;border-left:5px solid #dc2626}
+  #ctrl{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:space-between;padding:0 14px;pointer-events:none}
+  .pad{pointer-events:auto;width:clamp(54px,11vw,84px);height:clamp(54px,11vw,84px);border-radius:50%;border:3px solid #fff8;background:#0006;color:#fff;font-size:clamp(22px,5vw,36px);display:none;align-items:center;justify-content:center}
+  @media (hover:none),(pointer:coarse){.pad{display:flex}}
+  .stars{font-size:clamp(30px,6vw,48px);letter-spacing:6px}
+  .rev{max-height:150px;overflow:auto;background:#f6f1de;border-radius:8px;padding:6px 12px;margin:8px 0;text-align:left}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="hud"><span id="hScore">⭐ 0</span><span id="hProg">Soalan 0/10</span><span id="hLives">❤️❤️❤️</span></div>
+  <div id="bar"><div id="barIn"></div></div>
+  <div id="ctrl">
+    <button class="pad" id="bL">◀</button>
+    <button class="pad" id="bR">▶</button>
+  </div>
+
+  <!-- Skrin mula -->
+  <div class="overlay show" id="ovStart">
+    <div class="card">
+      <h1>🕋 Pengembaraan Rukun Haji</h1>
+      <p class="center">Bantu jemaah berjalan menuju Kaabah. Setiap kotak <b>“?”</b> yang ditemui mengandungi satu soalan tentang rukun haji.</p>
+      <details>
+        <summary>📖 Nota ringkas: 6 Rukun Haji (Mazhab Syafie)</summary>
+        <ol>
+          <li>Ihram (berniat haji)</li>
+          <li>Wukuf di Padang Arafah</li>
+          <li>Tawaf (Tawaf Ifadah)</li>
+          <li>Sa'ie antara Bukit Safa dan Marwah</li>
+          <li>Bercukur atau bergunting rambut</li>
+          <li>Tertib (mengikut urutan)</li>
+        </ol>
+      </details>
+      <p><b>Kawalan:</b> Tekan <b>→ / D</b> untuk berjalan ke kanan, <b>← / A</b> ke kiri. Di telefon, gunakan butang ◀ ▶. Anda ada <b>3 nyawa</b> ❤️.</p>
+      <div class="center"><button class="btn" id="bStart">▶ Mula Bermain</button></div>
+    </div>
+  </div>
+
+  <!-- Soalan -->
+  <div class="overlay" id="ovQ">
+    <div class="card">
+      <div id="qnum"></div>
+      <div id="qtext"></div>
+      <div id="opts"></div>
+      <div id="fb"></div>
+      <div class="center" style="margin-top:12px"><button class="btn gold" id="bNext" style="display:none">Teruskan ▶</button></div>
+    </div>
+  </div>
+
+  <!-- Tamat -->
+  <div class="overlay" id="ovEnd">
+    <div class="card center">
+      <h1 id="eTitle"></h1>
+      <div class="stars" id="eStars"></div>
+      <p id="eMsg"></p>
+      <div id="eRev"></div>
+      <button class="btn" id="bAgain">🔄 Main Semula</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== BANK SOALAN =====
+const BANK = [
+ {q:"Berapakah bilangan rukun haji mengikut Mazhab Syafie?",o:["4","5","6","7"],a:2,e:"Rukun haji ada 6: ihram, wukuf, tawaf, sa'ie, bercukur/bergunting dan tertib."},
+ {q:"Apakah rukun haji yang pertama?",o:["Wukuf","Ihram","Tawaf","Sa'ie"],a:1,e:"Ihram, iaitu berniat memasuki ibadah haji, ialah rukun yang pertama."},
+ {q:"Di manakah wukuf dilakukan?",o:["Muzdalifah","Mina","Padang Arafah","Masjidil Haram"],a:2,e:"Wukuf dilakukan di Padang Arafah. Inilah rukun haji yang paling utama."},
+ {q:"Pada tarikh bilakah wukuf dilakukan?",o:["8 Zulhijjah","9 Zulhijjah","10 Zulhijjah","11 Zulhijjah"],a:1,e:"Wukuf dilakukan pada 9 Zulhijjah, bermula waktu gelincir matahari hingga terbit fajar 10 Zulhijjah."},
+ {q:"Berapa kali jemaah mengelilingi Kaabah semasa tawaf?",o:["3 kali","5 kali","7 kali","9 kali"],a:2,e:"Tawaf dilakukan sebanyak 7 kali pusingan mengelilingi Kaabah."},
+ {q:"Dari manakah tawaf bermula?",o:["Multazam","Hajar Aswad","Maqam Ibrahim","Hijr Ismail"],a:1,e:"Tawaf bermula dan berakhir di garisan sejajar dengan Hajar Aswad."},
+ {q:"Sa'ie dilakukan antara dua bukit yang mana?",o:["Safa dan Marwah","Arafah dan Mina","Uhud dan Nur","Thur dan Hira'"],a:0,e:"Sa'ie ialah berulang-alik antara Bukit Safa dan Bukit Marwah."},
+ {q:"Sa'ie bermula dari mana dan berakhir di mana?",o:["Marwah ke Safa","Safa ke Marwah","Safa ke Safa","Marwah ke Marwah"],a:1,e:"Sa'ie bermula di Safa dan berakhir di Marwah, sebanyak 7 kali perjalanan."},
+ {q:"Bercukur atau bergunting rambut sebagai rukun haji sekurang-kurangnya berapa helai rambut?",o:["1 helai","3 helai","7 helai","10 helai"],a:1,e:"Sekurang-kurangnya 3 helai rambut dicukur atau digunting."},
+ {q:"Apakah maksud tertib dalam rukun haji?",o:["Berpakaian kemas","Melakukan rukun mengikut urutan yang betul","Berjalan dalam barisan","Membaca doa dengan kuat"],a:1,e:"Tertib bermaksud melakukan rukun-rukun haji mengikut urutan yang betul."},
+ {q:"Manakah antara berikut BUKAN rukun haji?",o:["Wukuf","Sa'ie","Tawaf","Melontar jamrah"],a:3,e:"Melontar jamrah ialah wajib haji. Jika ditinggalkan, haji tetap sah tetapi wajib membayar dam."},
+ {q:"Tempat bermula niat ihram dipanggil?",o:["Miqat","Jamrah","Multazam","Mabit"],a:0,e:"Miqat ialah tempat atau had masa untuk berniat ihram bagi haji dan umrah."},
+ {q:"Apakah hukum haji jika seseorang meninggalkan salah satu rukun haji?",o:["Haji sah dan wajib dam","Haji sah tanpa apa-apa","Haji tidak sah","Haji menjadi sunat"],a:2,e:"Rukun mesti dilakukan. Jika ditinggalkan, haji tidak sah dan tidak boleh diganti dengan dam."},
+ {q:"Haji ialah rukun Islam yang ke berapa?",o:["Ketiga","Keempat","Kelima","Pertama"],a:2,e:"Haji ialah rukun Islam yang kelima, wajib bagi yang berkemampuan."},
+ {q:"Tawaf yang menjadi rukun haji dikenali sebagai?",o:["Tawaf Qudum","Tawaf Wada'","Tawaf Ifadah","Tawaf Sunat"],a:2,e:"Tawaf Ifadah ialah tawaf rukun haji. Tawaf Qudum itu sunat, manakala Tawaf Wada' itu wajib haji."},
+ {q:"Apakah waktu wukuf di Arafah?",o:["Sepanjang bulan Zulhijjah","Gelincir matahari 9 Zulhijjah hingga terbit fajar 10 Zulhijjah","Selepas Isyak 8 Zulhijjah","Waktu Subuh 10 Zulhijjah sahaja"],a:1,e:"Waktu wukuf bermula gelincir matahari 9 Zulhijjah hingga terbit fajar 10 Zulhijjah."}
+];
+
+// ===== SETUP =====
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const W=960,H=540,GY=430,GAP=520,START=520,NQ=10,SPEED=240;
+const dpr=Math.min(window.devicePixelRatio||1,2);
+cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+const $=id=>document.getElementById(id);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+let state='start', cam=0, t=0, last=0;
+let stations=[], player, score, lives, correct, worldW, kaabaX, cur, wrongList, answered;
+const keys={}, touch={l:false,r:false};
+
+// bunyi
+let actx=null;
+function beep(f,d,type='sine',vol=.15,delay=0){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type=type;o.frequency.value=f;g.gain.value=vol;
+    o.connect(g);g.connect(actx.destination);
+    const s=actx.currentTime+delay;
+    g.gain.setValueAtTime(vol,s);g.gain.exponentialRampToValueAtTime(.001,s+d);
+    o.start(s);o.stop(s+d);
+  }catch(e){}
+}
+const sndOk=()=>{beep(660,.15,'triangle');beep(880,.25,'triangle',.15,.12)};
+const sndBad=()=>{beep(220,.3,'sawtooth',.12);beep(160,.35,'sawtooth',.12,.15)};
+const sndPop=()=>beep(520,.12,'square',.08);
+
+function newGame(){
+  const picked=shuffle(BANK.slice()).slice(0,NQ).map(q=>({
+    q:q.q,e:q.e,o:shuffle(q.o.map((t,i)=>({t,c:i===q.a})))
+  }));
+  stations=picked.map((q,i)=>({x:START+i*GAP,q,done:false,res:null}));
+  kaabaX=START+NQ*GAP+380; worldW=kaabaX+420;
+  player={x:120,dir:1,walk:0,moving:false};
+  score=0;lives=3;correct=0;answered=0;wrongList=[];cam=0;
+  updateHud();
+}
+function updateHud(){
+  $('hScore').textContent='⭐ '+score;
+  $('hProg').textContent='Soalan '+answered+'/'+NQ;
+  $('hLives').textContent='❤️'.repeat(Math.max(lives,0))+'🖤'.repeat(Math.max(3-lives,0));
+  $('barIn').style.width=(answered/NQ*100)+'%';
+}
+
+// ===== INPUT =====
+addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(state==='quiz'){
+    if(['1','2','3','4'].includes(e.key)){const b=document.querySelectorAll('.opt')[+e.key-1];if(b)b.click()}
+    if((e.key==='Enter'||e.key===' ')&&$('bNext').style.display!=='none'){e.preventDefault();$('bNext').click()}
+  }
+  if(['arrowleft','arrowright',' '].includes(e.key.toLowerCase()))e.preventDefault();
+});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+function hold(el,k){
+  const on=e=>{e.preventDefault();touch[k]=true},off=e=>{e.preventDefault();touch[k]=false};
+  el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);
+  el.addEventListener('pointerleave',off);el.addEventListener('pointercancel',off);
+}
+hold($('bL'),'l');hold($('bR'),'r');
+
+$('bStart').onclick=()=>{$('ovStart').classList.remove('show');newGame();state='play';sndPop()};
+$('bAgain').onclick=()=>{$('ovEnd').classList.remove('show');newGame();state='play';sndPop()};
+
+// ===== KUIZ =====
+function openQuiz(st){
+  state='quiz';cur=st;sndPop();
+  $('qnum').textContent='SOALAN '+(answered+1)+' DARIPADA '+NQ;
+  $('qtext').textContent=st.q.q;
+  $('fb').style.display='none';$('bNext').style.display='none';
+  const box=$('opts');box.innerHTML='';
+  st.q.o.forEach((op,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=(i+1)+'. '+op.t;
+    b.onclick=()=>answer(b,op);
+    box.appendChild(b);
+  });
+  $('ovQ').classList.add('show');
+}
+function answer(btn,op){
+  if(cur.done||cur.locked)return;
+  cur.locked=true;
+  const btns=[...document.querySelectorAll('.opt')];
+  btns.forEach((b,i)=>{b.classList.add('lock');if(cur.q.o[i].c)b.classList.add('ok')});
+  const fb=$('fb');fb.style.display='block';
+  if(op.c){
+    score+=10;correct++;cur.res='ok';sndOk();
+    fb.className='ok';fb.innerHTML='✅ <b>Betul!</b> '+cur.q.e;
+  }else{
+    lives--;cur.res='bad';btn.classList.add('bad');sndBad();
+    wrongList.push({q:cur.q.q,a:cur.q.o.find(o=>o.c).t});
+    fb.className='bad';fb.innerHTML='❌ <b>Belum tepat.</b> '+cur.q.e;
+  }
+  answered++;updateHud();
+  $('bNext').style.display='inline-block';
+}
+$('bNext').onclick=()=>{
+  cur.done=true;cur.locked=false;
+  $('ovQ').classList.remove('show');
+  if(lives<=0){endGame(true)}else{state='play'}
+};
+
+function endGame(over){
+  state='end';
+  const pct=correct/NQ;
+  $('eTitle').textContent=over?'💔 Nyawa Habis!':(pct>=.8?'🎉 Tahniah!':'🕋 Anda Sampai ke Kaabah!');
+  const s=pct>=.9?3:pct>=.6?2:pct>=.3?1:0;
+  $('eStars').textContent='⭐'.repeat(s)+'☆'.repeat(3-s);
+  $('eMsg').innerHTML='Markah: <b>'+score+'</b> / '+(NQ*10)+' &nbsp;|&nbsp; Betul: <b>'+correct+'</b> daripada '+NQ+' soalan'+
+    (over?'<br>Jangan putus asa, cuba lagi!':'');
+  $('eRev').innerHTML=wrongList.length?
+    '<p style="margin:6px 0 0"><b>📝 Semak semula:</b></p><div class="rev">'+
+    wrongList.map(w=>'<p style="margin:4px 0">• '+w.q+'<br><b style="color:#0b6b4a">Jawapan: '+w.a+'</b></p>').join('')+'</div>':
+    '<p>Semua jawapan betul. Mantap! 🌟</p>';
+  $('ovEnd').classList.add('show');
+  if(!over)[0,1,2].forEach(i=>beep(523+i*130,.3,'triangle',.15,i*.15));
+}
+
+// ===== LUKISAN =====
+function dunes(par,base,amp,col,f){
+  ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(0,H);
+  for(let x=0;x<=W;x+=16){
+    const wx=x+cam*par;
+    ctx.lineTo(x,base+Math.sin(wx*f)*amp+Math.sin(wx*f*2.3+1)*amp*.4);
+  }
+  ctx.lineTo(W,H);ctx.fill();
+}
+function palm(x,y,s){
+  ctx.save();ctx.translate(x,y);ctx.scale(s,s);
+  ctx.strokeStyle='#7a5230';ctx.lineWidth=9;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(10,-60,4,-120);ctx.stroke();
+  ctx.fillStyle='#2f8f4e';
+  for(let i=0;i<7;i++){
+    const a=-Math.PI/2+(i-3)*.5+Math.sin(t*1.5+i)*.04;
+    ctx.save();ctx.translate(4,-120);ctx.rotate(a+Math.PI/2);
+    ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(14,-34,0,-62);ctx.quadraticCurveTo(-14,-34,0,0);ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function drawStation(st,i){
+  const sx=st.x-cam;
+  if(sx<-120||sx>W+120)return;
+  // alas batu
+  ctx.fillStyle='#b89c6a';ctx.fillRect(sx-34,GY-18,68,18);
+  ctx.fillStyle='#9d8453';ctx.fillRect(sx-34,GY-18,68,4);
+  const by=GY-120+(st.done?0:Math.sin(t*3+i)*6);
+  if(!st.done){
+    const g=ctx.createRadialGradient(sx,by,5,sx,by,70);
+    g.addColorStop(0,'#ffe27a99');g.addColorStop(1,'#ffe27a00');
+    ctx.fillStyle=g;ctx.fillRect(sx-70,by-70,140,140);
+  }
+  ctx.fillStyle=st.done?(st.res==='ok'?'#2fb36a':'#d9534f'):'#f2b705';
+  ctx.strokeStyle=st.done?'#0006':'#8a6500';ctx.lineWidth=4;
+  ctx.beginPath();ctx.roundRect(sx-34,by-34,68,68,12);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='bold 40px "Segoe UI",Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(st.done?(st.res==='ok'?'✓':'✗'):'?',sx,by+2);
+  ctx.font='bold 14px "Segoe UI",Arial';ctx.fillStyle='#fff';ctx.strokeStyle='#0008';ctx.lineWidth=3;
+  ctx.strokeText('Soalan '+(i+1),sx,by-46);ctx.fillText('Soalan '+(i+1),sx,by-46);
+}
+function drawKaabah(){
+  const sx=kaabaX-cam;
+  if(sx<-250||sx>W+250)return;
+  ctx.fillStyle='#0003';ctx.beginPath();ctx.ellipse(sx,GY+4,110,12,0,0,7);ctx.fill();
+  ctx.fillStyle='#1a1a1a';ctx.fillRect(sx-80,GY-190,160,190);
+  ctx.fillStyle='#2b2b2b';ctx.fillRect(sx-80,GY-190,160,10);
+  ctx.fillStyle='#d4a82a';ctx.fillRect(sx-80,GY-150,160,18);
+  ctx.fillStyle='#e8c35a';
+  for(let k=0;k<4;k++)ctx.fillRect(sx-62+k*38,GY-146,22,10);
+  ctx.fillStyle='#d4a82a';ctx.beginPath();ctx.roundRect(sx-60,GY-110,40,78,[18,18,0,0]);ctx.fill();
+  ctx.fillStyle='#8a6a10';ctx.beginPath();ctx.roundRect(sx-54,GY-104,28,72,[14,14,0,0]);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 20px "Segoe UI",Arial';ctx.textAlign='center';ctx.fillText('🕋 Kaabah',sx,GY-208);
+}
+function drawPlayer(){
+  const sx=player.x-cam, sw=player.moving?Math.sin(player.walk)*0.7:0;
+  const hip=GY-40, sh=GY-82;
+  ctx.fillStyle='#0003';ctx.beginPath();ctx.ellipse(sx,GY+3,24,6,0,0,7);ctx.fill();
+  ctx.save();ctx.translate(sx,0);ctx.scale(player.dir,1);
+  ctx.lineCap='round';ctx.strokeStyle='#d9a066';ctx.lineWidth=8;
+  // kaki
+  ctx.beginPath();ctx.moveTo(-4,hip);ctx.lineTo(-4+sw*20,GY-3);ctx.moveTo(4,hip);ctx.lineTo(4-sw*20,GY-3);ctx.stroke();
+  ctx.strokeStyle='#5a3b1e';ctx.lineWidth=6;
+  ctx.beginPath();ctx.moveTo(-4+sw*20,GY-3);ctx.lineTo(0+sw*20,GY-3);ctx.moveTo(4-sw*20,GY-3);ctx.lineTo(8-sw*20,GY-3);ctx.stroke();
+  // kain bawah (izar)
+  ctx.fillStyle='#f4f4f4';ctx.strokeStyle='#bbb';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(-15,hip-6);ctx.lineTo(15,hip-6);ctx.lineTo(18,GY-14);ctx.lineTo(-18,GY-14);ctx.closePath();ctx.fill();ctx.stroke();
+  // lengan
+  ctx.strokeStyle='#d9a066';ctx.lineWidth=7;
+  ctx.beginPath();ctx.moveTo(0,sh+6);ctx.lineTo(-sw*16,hip-2);ctx.stroke();
+  // kain atas (rida')
+  ctx.fillStyle='#fff';ctx.strokeStyle='#bbb';
+  ctx.beginPath();ctx.moveTo(-14,sh);ctx.lineTo(14,sh+2);ctx.lineTo(16,hip-2);ctx.lineTo(-16,hip-2);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-14,sh);ctx.lineTo(8,sh+22);ctx.lineTo(-14,sh+22);ctx.closePath();ctx.fillStyle='#ececec';ctx.fill();
+  ctx.strokeStyle='#d9a066';ctx.lineWidth=7;
+  ctx.beginPath();ctx.moveTo(0,sh+6);ctx.lineTo(sw*16,hip-2);ctx.stroke();
+  // kepala
+  ctx.fillStyle='#d9a066';ctx.beginPath();ctx.arc(2,sh-14,13,0,7);ctx.fill();
+  ctx.fillStyle='#1b1b1b';ctx.beginPath();ctx.arc(2,sh-17,13,Math.PI*1.05,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#222';ctx.beginPath();ctx.arc(9,sh-14,2,0,7);ctx.fill();
+  ctx.restore();
+}
+function render(){
+  // langit
+  const g=ctx.createLinearGradient(0,0,0,GY);
+  g.addColorStop(0,'#5db7e8');g.addColorStop(1,'#fde9b0');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // matahari
+  ctx.fillStyle='#fff7c2';ctx.beginPath();ctx.arc(780-cam*.02,110,48,0,7);ctx.fill();
+  ctx.fillStyle='#ffe27a55';ctx.beginPath();ctx.arc(780-cam*.02,110,70,0,7);ctx.fill();
+  // awan
+  ctx.fillStyle='#ffffffcc';
+  for(let i=0;i<6;i++){
+    const cx=((i*340-cam*.1)%(W+300)+W+300)%(W+300)-100,cy=60+(i%3)*45;
+    ctx.beginPath();ctx.ellipse(cx,cy,50,16,0,0,7);ctx.ellipse(cx+30,cy-8,34,14,0,0,7);ctx.fill();
+  }
+  dunes(.2,330,28,'#e8c98c',.004);
+  dunes(.5,370,22,'#dcb774',.006);
+  // tanah
+  ctx.fillStyle='#d4a95f';ctx.fillRect(0,GY,W,H-GY);
+  ctx.fillStyle='#c89a4c';ctx.fillRect(0,GY,W,6);
+  // titik laluan
+  ctx.fillStyle='#b98a3e55';
+  for(let x=-(cam%60);x<W;x+=60)ctx.fillRect(x,GY+36,30,5);
+  // pokok tamar
+  for(let i=0;i<40;i++){
+    const wx=250+i*430+((i*97)%120),sx=wx-cam*0.9;
+    if(sx>-80&&sx<W+80)palm(sx,GY-4+((i*13)%10),0.8+(i%3)*.2);
+  }
+  // papan tanda mula
+  const ms=60-cam;
+  if(ms>-120){ctx.fillStyle='#7a5230';ctx.fillRect(ms,GY-90,8,90);ctx.fillStyle='#fff';ctx.fillRect(ms-40,GY-120,100,40);
+    ctx.fillStyle='#0b6b4a';ctx.font='bold 16px "Segoe UI",Arial';ctx.textAlign='center';ctx.fillText('MULA ▶',ms+10,GY-95);}
+  stations.forEach(drawStation);
+  drawKaabah();
+  drawPlayer();
+  // arahan
+  if(state==='play'&&answered===0&&player.x<400){
+    ctx.fillStyle='#000a';ctx.beginPath();ctx.roundRect(W/2-170,H-70,340,36,18);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 16px "Segoe UI",Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('Tekan → atau D untuk berjalan',W/2,H-52);
+  }
+}
+
+// ===== LOOP =====
+function update(dt){
+  t+=dt;
+  if(state!=='play')return;
+  const dir=((keys['arrowright']||keys['d']||touch.r)?1:0)-((keys['arrowleft']||keys['a']||touch.l)?1:0);
+  player.moving=dir!==0;
+  if(dir){player.dir=dir;player.walk+=dt*12;player.x+=dir*SPEED*dt}
+  const next=stations.find(s=>!s.done);
+  const maxX=next?next.x-60:kaabaX-70;
+  player.x=Math.max(40,Math.min(player.x,maxX));
+  if(next&&player.x>=maxX-.5){player.moving=false;openQuiz(next);return}
+  if(!next&&player.x>=maxX-.5){endGame(false);return}
+  cam=Math.max(0,Math.min(player.x-320,worldW-W));
+}
+function loop(ts){
+  const dt=Math.min((ts-last)/1000||0,.05);last=ts;
+  if(state==='start'){player=player||{x:120,dir:1,walk:0,moving:false};stations=stations;}
+  update(dt);
+  if(!player){newGame();}
+  render();
+  requestAnimationFrame(loop);
+}
+newGame();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
